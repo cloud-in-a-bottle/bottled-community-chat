@@ -1,0 +1,17 @@
+# Test-only Python project: runs the unit tests and the app under the Cloud in a Bottle test harness.
+[project]
+name = "community-chat-tests"
+version = "0.0.0"
+requires-python = "==3.12.*"
+
+[dependency-groups]
+dev = [
+    "flask",  # admin.py; installed unpinned in the image too
+    "openhost[test-harness] @ git+https://github.com/cloud-in-a-bottle/cloud-in-a-bottle@main",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
