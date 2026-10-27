@@ -29,7 +29,7 @@ def _owner_get(stack: OpenhostStack, path: str) -> requests.Response:
 
 def _js_string(page: str, name: str) -> str:
     match = re.search(rf"var {name} = (\"[^\"]*\");", page)
-    assert match, f"no `var {name}` in the SSO bootstrap page: {page[:1500]}"
+    assert match, f"no `var {name}` in the SSO bootstrap page: {page[-1500:]}"
     return str(json.loads(match.group(1)))
 
 
@@ -43,12 +43,13 @@ def test_owner_onboards_and_is_signed_in_as_admin(stack: OpenhostStack) -> None:
     done = stack.owner_session.post(
         f"{stack.url}/_openhost/community/onboarding", data={"username": username}, headers=HTML, timeout=60
     )
-    assert done.status_code == 200 and "Invalid username" not in done.text, (
+    assert done.status_code == 200 and 'class="err"' not in done.text, (
         f"onboarding POST: {done.status_code}: {done.text[:1000]}{_logs(stack)}"
     )
 
     login = _owner_get(stack, "/_openhost/community/login")
     assert login.status_code == 200, f"SSO login: {login.status_code}: {login.text[:500]}{_logs(stack)}"
+    assert "var token" in login.text, f"SSO login didn't sign in: {login.url}: {login.text[-1500:]}{_logs(stack)}"
     token = _js_string(login.text, "token")
     # The web client talks to the homeserver at this URL, so it must be the app's own URL.
     assert _js_string(login.text, "hsBase") == stack.url
@@ -87,7 +88,9 @@ def test_anonymous_access(stack: OpenhostStack) -> None:
             if response.status_code != 502 or time.monotonic() > deadline:
                 break
             time.sleep(2)
-        assert response.status_code == 200, f"anonymous GET {path}: {response.status_code}: {response.text[:300]}"
+        assert response.status_code == 200, (
+            f"anonymous GET {path}: {response.status_code}: {response.text[:300]}{_logs(stack)}"
+        )
     # The SSO endpoint mints an owner session, so it and the admin UI must stay behind the router login.
     for path in ("/_openhost/community/login", "/_openhost/admin", "/"):
         response = requests.get(f"{stack.url}{path}", headers=HTML, allow_redirects=False, timeout=30)
