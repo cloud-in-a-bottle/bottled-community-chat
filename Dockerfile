@@ -1,7 +1,11 @@
-FROM matrixdotorg/synapse:latest
+# Synapse, pinned to an exact release and its multi-arch index digest. Bump
+# both together, deliberately, after CI passes.
+FROM docker.io/matrixdotorg/synapse:v1.163.2@sha256:c3c21919a322f74d177a43bce8031adc81ef839ddd117a8dd03cfec350e76e02
 
 # Pin the bundled web client (Cinny) version so builds are reproducible.
 ARG CINNY_VERSION=v4.12.3
+# sha256 of cinny-${CINNY_VERSION}.tar.gz (GitHub release asset digest).
+ARG CINNY_SHA256=dcfb3ceb17a3158367415f39dd90ca5f0b4ba5568bf3376285f49d27f39661b8
 
 # The Synapse image is Debian-based, so apt works fine.
 # Install Caddy for Host header rewriting (the OpenHost router strips Host
@@ -10,7 +14,7 @@ ARG CINNY_VERSION=v4.12.3
 RUN apt-get update && \
     apt-get install -y --no-install-recommends caddy curl ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir flask && \
+    pip install --no-cache-dir flask==3.1.3 && \
     groupadd -g 1000 host && \
     useradd -u 1000 -g 1000 -m host
 
@@ -20,6 +24,7 @@ RUN apt-get update && \
 RUN mkdir -p /app/webclient && \
     curl -fsSL "https://github.com/cinnyapp/cinny/releases/download/${CINNY_VERSION}/cinny-${CINNY_VERSION}.tar.gz" \
         -o /tmp/cinny.tar.gz && \
+    echo "${CINNY_SHA256}  /tmp/cinny.tar.gz" | sha256sum -c - && \
     tar xzf /tmp/cinny.tar.gz -C /tmp && \
     cp -a /tmp/dist/. /app/webclient/ && \
     rm -rf /tmp/cinny.tar.gz /tmp/dist && \
