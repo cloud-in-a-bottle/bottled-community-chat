@@ -154,11 +154,14 @@ if [ -n "$OPENHOST_ZONE_DOMAIN" ]; then
     APP_SUBDOMAIN="${OPENHOST_APP_NAME:-bottle-community-chat}"
     SERVER_NAME="${APP_SUBDOMAIN}.${OPENHOST_ZONE_DOMAIN}"
 
-    case "$OPENHOST_ZONE_DOMAIN" in
+    # On a dev router the zone domain may carry the router port (eg harness.localhost:8080),
+    # so match on the hostname alone.
+    case "${OPENHOST_ZONE_DOMAIN%%:*}" in
         lvh.me|*.lvh.me|localhost|*.localhost)
             # Dev environment — use http with the router's external port
             ROUTER_PORT=""
-            if [ -n "$OPENHOST_ROUTER_URL" ]; then
+            # Take the port from the router URL only if the zone domain doesn't already carry it.
+            if [ -n "$OPENHOST_ROUTER_URL" ] && [ "$OPENHOST_ZONE_DOMAIN" = "${OPENHOST_ZONE_DOMAIN%%:*}" ]; then
                 ROUTER_PORT=$(echo "$OPENHOST_ROUTER_URL" | sed -n 's/.*:\([0-9]*\)$/\1/p')
             fi
             PUBLIC_BASEURL="http://${SERVER_NAME}${ROUTER_PORT:+:$ROUTER_PORT}/"
