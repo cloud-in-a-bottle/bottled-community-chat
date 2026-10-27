@@ -79,10 +79,14 @@ def test_web_client_is_served_with_the_sso_guard(stack: OpenhostStack) -> None:
 
 
 def test_anonymous_access(stack: OpenhostStack) -> None:
-    _owner_get(stack, "/")
     # Matrix APIs and discovery are public so other clients and servers can reach them.
     for path in ("/_matrix/client/versions", "/.well-known/matrix/client"):
-        response = requests.get(f"{stack.url}{path}", timeout=30)
+        deadline = time.monotonic() + 120  # Synapse may still be starting behind Caddy (502)
+        while True:
+            response = requests.get(f"{stack.url}{path}", timeout=30)
+            if response.status_code != 502 or time.monotonic() > deadline:
+                break
+            time.sleep(2)
         assert response.status_code == 200, f"anonymous GET {path}: {response.status_code}: {response.text[:300]}"
     # The SSO endpoint mints an owner session, so it and the admin UI must stay behind the router login.
     for path in ("/_openhost/community/login", "/_openhost/admin", "/"):
