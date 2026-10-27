@@ -27,6 +27,19 @@ def _owner_get(stack: OpenhostStack, path: str) -> requests.Response:
         time.sleep(2)
 
 
+def _wait_for_synapse(stack: OpenhostStack) -> None:
+    """Synapse starts after Caddy and the admin UI, which answer (and Caddy 502s for Synapse) in the meantime."""
+    deadline = time.monotonic() + 120
+    while True:
+        response = requests.get(f"{stack.url}/_matrix/client/versions", timeout=30)
+        if response.status_code != 502 or time.monotonic() > deadline:
+            break
+        time.sleep(2)
+    assert response.status_code == 200, (
+        f"/_matrix/client/versions: {response.status_code}: {response.text[:300]}{_logs(stack)}"
+    )
+
+
 def _js_string(page: str, name: str) -> str:
     match = re.search(rf"var {name} = (\"[^\"]*\");", page)
     assert match, f"no `var {name}` in the SSO bootstrap page: {page[-1500:]}"
@@ -34,6 +47,7 @@ def _js_string(page: str, name: str) -> str:
 
 
 def test_owner_onboards_and_is_signed_in_as_admin(stack: OpenhostStack) -> None:
+    _wait_for_synapse(stack)
     onboarding = _owner_get(stack, "/_openhost/community/onboarding")
     assert onboarding.status_code == 200, f"onboarding: {onboarding.status_code}{_logs(stack)}"
     # The suggested account name is the owner's username, sanitized to a Matrix localpart.
@@ -81,16 +95,10 @@ def test_web_client_is_served_with_the_sso_guard(stack: OpenhostStack) -> None:
 
 def test_anonymous_access(stack: OpenhostStack) -> None:
     # Matrix APIs and discovery are public so other clients and servers can reach them.
+    _wait_for_synapse(stack)
     for path in ("/_matrix/client/versions", "/.well-known/matrix/client"):
-        deadline = time.monotonic() + 120  # Synapse may still be starting behind Caddy (502)
-        while True:
-            response = requests.get(f"{stack.url}{path}", timeout=30)
-            if response.status_code != 502 or time.monotonic() > deadline:
-                break
-            time.sleep(2)
-        assert response.status_code == 200, (
-            f"anonymous GET {path}: {response.status_code}: {response.text[:300]}{_logs(stack)}"
-        )
+        response = requests.get(f"{stack.url}{path}", timeout=30)
+        assert response.status_code == 200, f"anonymous GET {path}: {response.status_code}: {response.text[:300]}"
     # The SSO endpoint mints an owner session, so it and the admin UI must stay behind the router login.
     for path in ("/_openhost/community/login", "/_openhost/admin", "/"):
         response = requests.get(f"{stack.url}{path}", headers=HTML, allow_redirects=False, timeout=30)
