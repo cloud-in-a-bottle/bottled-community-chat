@@ -1554,8 +1554,9 @@ def community_login():
         # errors (which may include upstream response bodies) aren't exposed.
         app.logger.error("community_login: SSO failed: %s", exc)
         return "Could not sign in to chat. Please try again or check the app logs.", 502
-    # Cinny expects the homeserver base URL it will talk to (same origin).
-    hs_base_url = f"https://{session['home_server']}"
+    # Cinny expects the homeserver base URL it will talk to (same origin): the
+    # public_baseurl start.sh derived from the zone (http on dev zones).
+    hs_base_url = os.environ["SYNAPSE_PUBLIC_BASEURL"].rstrip("/")
     return render_template_string(
         SSO_BOOTSTRAP_TEMPLATE,
         access_token=session["access_token"],
