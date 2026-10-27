@@ -785,8 +785,8 @@ wheels = [
 
 [[package]]
 name = "openhost"
-version = "0.3.0rc1"
-source = { git = "https://github.com/cloud-in-a-bottle/cloud-in-a-bottle?rev=main#445237109b17a42a5d11e61b2b8b5554cb6ab9a1" }
+version = "0.3.0"
+source = { git = "https://github.com/cloud-in-a-bottle/cloud-in-a-bottle?rev=main#033c12ee5e480a78ae85863e275041655909ffad" }
 dependencies = [
     { name = "acme" },
     { name = "argon2-cffi" },

@@ -234,6 +234,23 @@ else
     fi
 fi
 
+# Caddy proxies to Synapse on localhost:8008. Synapse's generated config only
+# listens there when the server name has no port: for "host:port" (a dev zone,
+# eg harness.localhost:59285) it picks port-400 instead, which nothing proxies
+# to. Pin the plain-http listener to 8008 on every boot.
+python3 - "$DATA_DIR/homeserver.yaml" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+content = open(path).read()
+m = re.search(r"^listeners:\n((?:[ \t-].*\n|\n)*)", content, flags=re.MULTILINE)
+if m:
+    block = re.sub(r"^([ \t]*-?[ \t]*port:)[ \t]*\d+[ \t]*$", r"\g<1> 8008", m.group(1), count=1, flags=re.MULTILINE)
+    if block != m.group(1):
+        content = content[: m.start(1)] + block + content[m.end(1):]
+        open(path, "w").write(content)
+        print("Pinned the Synapse listener to port 8008")
+PYEOF
+
 # ---------------------------------------------------------------------------
 # Apply federation + registration settings from openhost_settings.json.
 # Delegate to admin.py's apply_settings_to_yaml (single source of truth) so the
@@ -399,6 +416,7 @@ echo "Caddy started (PID $CADDY_PID)"
 # so it can request an app restart (see the supervision loop below).
 OPENHOST_APP_DATA_DIR="$DATA_DIR" \
     SYNAPSE_SERVER_NAME="$SERVER_NAME" \
+    SYNAPSE_PUBLIC_BASEURL="$PUBLIC_BASEURL" \
     OPENHOST_RESTART_SENTINEL="$RESTART_SENTINEL" \
     python3 /app/admin.py &
 ADMIN_PID=$!
