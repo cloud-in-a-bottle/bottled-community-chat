@@ -160,6 +160,8 @@ Deploy via the OpenHost dashboard or CLI:
 oh app deploy https://github.com/cloud-in-a-bottle/bottled-community-chat --wait
 ```
 
+`cloudinabottle.toml` sets `prebuilt_image`, so Cloud in a Bottle pulls our signed prebuilt image (built by CI from each release tag) instead of building the Dockerfile. To fork and modify this app, comment out `prebuilt_image` so your instance builds from source.
+
 The app will be available at `bottle-community-chat.<zone_domain>` (e.g. `bottle-community-chat.andrew.host.imbue.com`).
 
 Connect with any Matrix client (Element, FluffyChat, etc.) using your server URL as the homeserver. User IDs will look like `@user:bottle-community-chat.<zone_domain>`.
