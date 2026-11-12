@@ -1,6 +1,6 @@
 # Synapse, pinned to an exact release and its multi-arch index digest. Bump
 # both together, deliberately, after CI passes.
-FROM docker.io/matrixdotorg/synapse:v1.163.2@sha256:c3c21919a322f74d177a43bce8031adc81ef839ddd117a8dd03cfec350e76e02
+FROM docker.io/matrixdotorg/synapse:v1.164.2@sha256:f0df87cff259872637b4b5e5174b9977e5e3046dd421505407803b5e45c5f842
 
 # Pin the bundled web client (Cinny) version so builds are reproducible.
 ARG CINNY_VERSION=v4.12.3
