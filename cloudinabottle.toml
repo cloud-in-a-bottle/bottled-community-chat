@@ -1,6 +1,7 @@
 [app]
 name = "bottle-community-chat"
-version = "1.1.0"
+version = "1.1.1"
+release_tag_format = "semver"
 description = "Cloud in a Bottle Community Chat: Matrix Synapse homeserver with a bundled web client, owner SSO, and one-click community-space join"
 
 [runtime.container]
